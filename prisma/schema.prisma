@@ -1,12 +1,10 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -20,15 +18,11 @@ model User {
   email         String    @unique
   passwordHash  String
   role          UserRole  @default(STAFF)
-  
   workspace     Workspace @relation(fields: [workspaceId], references: [id])
   workspaceId   String
-
   staff         Staff?    @relation(fields: [staffId], references: [id])
   staffId       String?   @unique
-
   sessions      Session[]
-
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -43,13 +37,11 @@ model Session {
 model Workspace {
   id        String   @id @default(cuid())
   name      String
-  
   users     User[]
   staff     Staff[]
   beds      Bed[]
   shifts    Shift[]
   settings  WorkspaceSettings?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -58,10 +50,8 @@ model WorkspaceSettings {
   id              String    @id @default(cuid())
   workspace       Workspace @relation(fields: [workspaceId], references: [id])
   workspaceId     String    @unique
-  
   minRestHours    Int       @default(11)
   maxOvertime     Int       @default(48)
-  
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
@@ -71,15 +61,12 @@ model Staff {
   firstName     String
   lastName      String
   contractHours Int      @default(37)
-  
   workspace     Workspace @relation(fields: [workspaceId], references: [id])
   workspaceId   String
-
   user          User?
   skills        Skill[]
   availability  Availability[]
   assignments   ShiftAssignment[]
-
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -93,12 +80,9 @@ model Skill {
 model Bed {
   id          String   @id @default(cuid())
   name        String
-  
   workspace     Workspace @relation(fields: [workspaceId], references: [id])
   workspaceId   String
-
   assignments BedAssignment[]
-
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -107,11 +91,9 @@ model BedAssignment {
   id          String   @id @default(cuid())
   bed         Bed      @relation(fields: [bedId], references: [id])
   bedId       String
-  
-  patientAcuity Int      @default(1) // 1-5 scale
+  patientAcuity Int      @default(1)
   startTime     DateTime @default(now())
   endTime       DateTime?
-
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -120,12 +102,9 @@ model Shift {
   id          String   @id @default(cuid())
   startTime   DateTime
   endTime     DateTime
-  
   workspace     Workspace @relation(fields: [workspaceId], references: [id])
   workspaceId   String
-
   assignments ShiftAssignment[]
-
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -136,7 +115,6 @@ model ShiftAssignment {
   shiftId String
   staff   Staff  @relation(fields: [staffId], references: [id])
   staffId String
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -145,11 +123,9 @@ model Availability {
   id        String    @id @default(cuid())
   staff     Staff     @relation(fields: [staffId], references: [id])
   staffId   String
-  
   startTime DateTime
   endTime   DateTime
-  type      String    // e.g., "TIME_OFF", "UNAVAILABLE"
-
+  type      String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
