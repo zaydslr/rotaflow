@@ -6,7 +6,7 @@ import { lucia } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { generateIdFromEntropySize } from "lucia";
-import { UserRole } from "@/generated/prisma";
+import { UserRole } from "@prisma/client";
 
 export async function signup(formData: FormData) {
     const email = formData.get("email");
