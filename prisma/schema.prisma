@@ -60,11 +60,13 @@ model Staff {
   id            String   @id @default(cuid())
   firstName     String
   lastName      String
+  email         String?
   contractHours Int      @default(37)
+  role          UserRole @default(STAFF)
   workspace     Workspace @relation(fields: [workspaceId], references: [id])
   workspaceId   String
   user          User?
-  skills        Skill[]
+  SkillToStaff  SkillToStaff[]
   availability  Availability[]
   assignments   ShiftAssignment[]
   createdAt     DateTime @default(now())
@@ -74,7 +76,15 @@ model Staff {
 model Skill {
   id          String   @id @default(cuid())
   name        String   @unique
-  staff       Staff[]
+  SkillToStaff SkillToStaff[]
+}
+
+model SkillToStaff {
+  staff   Staff  @relation(fields: [staffId], references: [id])
+  staffId String
+  skill   Skill  @relation(fields: [skillId], references: [id])
+  skillId String
+  @@id([staffId, skillId])
 }
 
 model Bed {
