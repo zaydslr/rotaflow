@@ -13,6 +13,25 @@ enum UserRole {
   STAFF
 }
 
+enum BedStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  RESERVED
+}
+
+enum ShiftStatus {
+  DRAFT
+  PUBLISHED
+  COMPLETED
+  CANCELLED
+}
+
+enum DemandType {
+  FIXED   // requiredStaff is a fixed number
+  CENSUS  // requiredStaff is calculated from live bed census
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -39,8 +58,10 @@ model Workspace {
   name      String
   users     User[]
   staff     Staff[]
-  beds      Bed[]
-  shifts    Shift[]
+  beds           Bed[]
+  shifts         Shift[]
+  shiftPatterns  ShiftPattern[]
+  procedures     Procedure[]
   settings  WorkspaceSettings?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -68,7 +89,13 @@ model Staff {
   user          User?
   SkillToStaff  SkillToStaff[]
   availability  Availability[]
-  assignments   ShiftAssignment[]
+  shifts        Shift[]
+  totalHoursThisMonth Float?   @default(0)
+  weekendShifts       Int?     @default(0)
+  nightShifts         Int?     @default(0)
+  rating              Int?     @default(1)
+  totalBurden     Float    @default(0)
+  StaffBurden     StaffBurden[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -87,9 +114,27 @@ model SkillToStaff {
   @@id([staffId, skillId])
 }
 
+// ─── Procedure Library ────────────────────────────────────────────────────────
+model Procedure {
+  id              String   @id @default(cuid())
+  name            String
+  defaultAcuity   Int      @default(2)   // 1-5
+  defaultDuration Int      @default(3)   // days
+  color           String   @default("#6366f1")
+  workspace       Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId     String
+  assignments     BedAssignment[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── Bed Management ───────────────────────────────────────────────────────────
 model Bed {
   id          String   @id @default(cuid())
   name        String
+  room        String?
+  isIsolation Boolean  @default(false)
+  status      BedStatus @default(AVAILABLE)
   workspace     Workspace @relation(fields: [workspaceId], references: [id])
   workspaceId   String
   assignments BedAssignment[]
@@ -98,44 +143,87 @@ model Bed {
 }
 
 model BedAssignment {
-  id          String   @id @default(cuid())
-  bed         Bed      @relation(fields: [bedId], references: [id])
-  bedId       String
-  patientAcuity Int      @default(1)
-  startTime     DateTime @default(now())
-  endTime       DateTime?
+  id               String     @id @default(cuid())
+  bed              Bed        @relation(fields: [bedId], references: [id])
+  bedId            String
+  patientAcuity    Int        @default(1)
+  patientProcedure String?    // Free-text fallback
+  procedure        Procedure? @relation(fields: [procedureId], references: [id])
+  procedureId      String?    // Optional link to Procedure library
+  startTime        DateTime   @default(now())
+  endTime          DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+// ─── Shift Patterns ───────────────────────────────────────────────────────────
+model ShiftPattern {
+  id            String     @id @default(cuid())
+  name          String
+  startTime     String
+  endTime       String
+  color         String
+  requiredStaff Int        @default(1)
+  isDefault     Boolean    @default(false)
+  demandType    DemandType @default(FIXED)  // FIXED or CENSUS-driven
+
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+
+  shifts        Shift[]
+  unfairnessWeight Float    @default(1.0)
+  targetRating    Float    @default(3.0)
+  requiredRole    UserRole @default(STAFF)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@unique([workspaceId, name])
 }
 
 model Shift {
-  id          String   @id @default(cuid())
-  startTime   DateTime
-  endTime     DateTime
-  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  id            String   @id @default(cuid())
+  date          DateTime
+  patternId     String
+  pattern       ShiftPattern @relation(fields: [patternId], references: [id])
+
+  startTime     DateTime
+  endTime       DateTime
+
+  staffId       String?
+  staff         Staff?   @relation(fields: [staffId], references: [id])
+
+  status        ShiftStatus @default(DRAFT)
+  unfairnessWeight Float    @default(1.0)
+  targetRating    Float    @default(3.0)
+  requiredRole    UserRole @default(STAFF)
   workspaceId   String
-  assignments ShiftAssignment[]
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  StaffBurden   StaffBurden[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
 
-model ShiftAssignment {
-  id      String @id @default(cuid())
-  shift   Shift  @relation(fields: [shiftId], references: [id])
-  shiftId String
-  staff   Staff  @relation(fields: [staffId], references: [id])
-  staffId String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model StaffBurden {
+  id            String   @id @default(cuid())
+  staffId       String
+  staff         Staff    @relation(fields: [staffId], references: [id])
+  shiftId       String
+  shift         Shift    @relation(fields: [shiftId], references: [id])
+  burdenValue   Float
+  date          DateTime
+  createdAt     DateTime @default(now())
 }
 
 model Availability {
-  id        String    @id @default(cuid())
-  staff     Staff     @relation(fields: [staffId], references: [id])
-  staffId   String
-  startTime DateTime
-  endTime   DateTime
-  type      String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String   @id @default(cuid())
+  staffId       String
+  staff         Staff    @relation(fields: [staffId], references: [id])
+
+  type          String
+  startDate     DateTime
+  endDate       DateTime
+  description   String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

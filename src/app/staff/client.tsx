@@ -26,7 +26,7 @@ export function StaffClient({ initialStaff = [] }: StaffClientProps) {
     async function handleCreate(data: CreateStaffInput) {
         try {
             const newStaff = await createStaff(data)
-            setStaff(prev => [...prev, newStaff as StaffMember])
+            setStaff(prev => [...prev, newStaff as unknown as StaffMember])
             toast.success('Staff member added successfully')
         } catch (error) {
             console.error('Create error:', error)
@@ -39,7 +39,7 @@ export function StaffClient({ initialStaff = [] }: StaffClientProps) {
 
         try {
             const updated = await updateStaff({ ...data, id: editingStaff.id })
-            setStaff(prev => prev.map(s => s.id === editingStaff.id ? updated as StaffMember : s))
+            setStaff(prev => prev.map(s => s.id === editingStaff.id ? updated as unknown as StaffMember : s))
             toast.success('Staff member updated successfully')
         } catch (error) {
             console.error('Update error:', error)

@@ -1,0 +1,7 @@
+-- CreateEnum
+CREATE TYPE "BedStatus" AS ENUM ('AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'RESERVED');
+
+-- AlterTable
+ALTER TABLE "Bed" ADD COLUMN     "isIsolation" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "room" TEXT,
+ADD COLUMN     "status" "BedStatus" NOT NULL DEFAULT 'AVAILABLE';

@@ -4,12 +4,25 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
 
+import { prisma } from '@/lib/prisma'
+
 export default async function Home() {
   const { user } = await validateRequest()
 
   if (!user) {
     redirect('/login')
   }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const onLeaveCount = await prisma.availability.count({
+    where: {
+      staff: { workspaceId: user.workspaceId },
+      startDate: { lte: today },
+      endDate: { gte: today },
+    }
+  })
 
   return (
     <div className="container mx-auto py-10">
@@ -41,8 +54,8 @@ export default async function Home() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" disabled>
-              Coming Soon
+            <Button asChild>
+              <Link href="/beds">Manage Beds</Link>
             </Button>
           </CardContent>
         </Card>
@@ -55,8 +68,43 @@ export default async function Home() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" disabled>
-              Coming Soon
+            <Button asChild>
+              <Link href="/rota">Rota Calendar</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Staff Availability</CardTitle>
+            <CardDescription>
+              Track leave and attendance
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground mb-2">
+                {onLeaveCount === 0
+                  ? 'All team members available'
+                  : `${onLeaveCount} member${onLeaveCount === 1 ? '' : 's'} currently on leave`}
+              </p>
+              <Button asChild variant="outline">
+                <Link href="/staff">View Absences</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Clinical Skills</CardTitle>
+            <CardDescription>
+              Manage staff certifications
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="secondary">
+              <Link href="/skills">Manage Skills</Link>
             </Button>
           </CardContent>
         </Card>

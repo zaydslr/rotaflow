@@ -1,5 +1,6 @@
 import { getStaff } from '@/app/actions/staff'
 import { StaffClient } from './client'
+import { StaffMember } from '@/types/staff'
 
 export const metadata = {
     title: 'Staff Management - Rotaflow',
@@ -7,7 +8,7 @@ export const metadata = {
 }
 
 export default async function StaffPage() {
-    const staff = await getStaff()
+    const staff = await getStaff() as unknown as StaffMember[]
 
     return <StaffClient initialStaff={staff} />
 }

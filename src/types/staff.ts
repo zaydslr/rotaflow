@@ -6,6 +6,8 @@ export interface StaffMember {
     contractHours: number
     role: 'MANAGER' | 'DEPUTY' | 'STAFF'
     skills: string[]
+    rating?: number
+    availability?: any[]
     createdAt: Date
 }
 

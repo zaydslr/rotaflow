@@ -16,6 +16,12 @@ export async function getStaff() {
                 include: {
                     skill: true
                 }
+            },
+            availability: {
+                where: {
+                    endDate: { gte: new Date() }
+                },
+                take: 1
             }
         },
         orderBy: { lastName: 'asc' }
@@ -29,8 +35,28 @@ export async function getStaff() {
         contractHours: s.contractHours,
         role: s.role || 'STAFF',
         skills: s.SkillToStaff?.map(ss => ss.skill?.name).filter(Boolean) || [],
+        rating: s.rating,
+        totalHoursThisMonth: s.totalHoursThisMonth,
+        availability: s.availability,
         createdAt: s.createdAt
     }))
+}
+
+export async function getStaffById(id: string) {
+    const { user } = await validateRequest()
+    if (!user) throw new Error('Unauthorized')
+
+    return await prisma.staff.findUnique({
+        where: { id, workspaceId: user.workspaceId },
+        include: {
+            SkillToStaff: {
+                include: {
+                    skill: true
+                }
+            },
+            availability: true
+        }
+    })
 }
 
 export async function createStaff(data: CreateStaffInput) {
